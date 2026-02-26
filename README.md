@@ -67,8 +67,8 @@ The PostgreSQL schema is designed and documented in **[docs/data-model.md](docs/
 ## API (current)
 
 - `GET /health` — Service health
-- `GET /api/credit/lines` — List credit lines (placeholder)
-- `GET /api/credit/lines/:id` — Get credit line by id (placeholder)
+- `GET /api/credit/lines` — List credit lines
+- `GET /api/credit/lines/:id` — Get a full credit line by id; returns `404` with `{ "error": "Credit line \"<id>\" not found." }` when missing
 - `POST /api/risk/evaluate` — Request risk evaluation; body: `{ "walletAddress": "..." }`
 
 ## Project layout

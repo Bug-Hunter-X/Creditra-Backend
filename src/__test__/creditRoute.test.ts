@@ -1,20 +1,20 @@
 
 import express, { Express } from "express";
 import request from "supertest";
-import { jest } from "@jest/globals";
-import { _resetStore, createCreditLine } from "../../services/creditService.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { _resetStore, createCreditLine } from "../services/creditService.js";
 
 // Mock adminAuth so we can control auth pass/fail from within tests
-jest.mock("../../middleware/adminAuth.js", () => ({
-  adminAuth: jest.fn((_req: unknown, _res: unknown, next: () => void) => next()),
+vi.mock("../middleware/adminAuth.js", () => ({
+  adminAuth: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
   ADMIN_KEY_HEADER: "x-admin-api-key",
 }));
 
-import creditRouter from "../../routes/credit.js";
-import { adminAuth } from "../../middleware/adminAuth.js";
-import { afterEach, beforeEach } from "node:test";
+import creditRouter from "../routes/credit.js";
+import { adminAuth } from "../middleware/adminAuth.js";
+import { creditLineRepository } from "../repositories/creditLineRepository.js";
 
-const mockAdminAuth = adminAuth as jest.MockedFunction<typeof adminAuth>;
+const mockAdminAuth = vi.mocked(adminAuth);
 
 function buildApp(): Express {
   const app = express();
@@ -45,6 +45,7 @@ beforeEach(() => {
 
 afterEach(() => {
   mockAdminAuth.mockReset();
+  vi.restoreAllMocks();
 });
 
 
@@ -70,22 +71,44 @@ describe("GET /api/credit/lines", () => {
 
 
 describe("GET /api/credit/lines/:id", () => {
-  it("returns 200 with the credit line for a known id", async () => {
-    createCreditLine(VALID_ID);
+  it("returns 200 with the full credit line payload for a known id", async () => {
+    const created = createCreditLine(VALID_ID);
     const res = await request(buildApp()).get(`/api/credit/lines/${VALID_ID}`);
     expect(res.status).toBe(200);
-    expect(res.body.data.id).toBe(VALID_ID);
+    expect(res.body.data).toEqual(created);
   });
 
-  it("returns 404 for an unknown id", async () => {
+  it("returns 404 with the standardized not-found error format for an unknown id", async () => {
     const res = await request(buildApp()).get(`/api/credit/lines/${MISSING_ID}`);
     expect(res.status).toBe(404);
-    expect(res.body.error).toContain(MISSING_ID);
+    expect(res.body).toEqual({
+      error: `Credit line "${MISSING_ID}" not found.`,
+    });
   });
 
   it("returns JSON content-type on 404", async () => {
     const res = await request(buildApp()).get(`/api/credit/lines/${MISSING_ID}`);
     expect(res.headers["content-type"]).toMatch(/application\/json/);
+  });
+
+  it("returns 500 with the thrown error message when repository throws an Error", async () => {
+    vi.spyOn(creditLineRepository, "getById").mockImplementation(() => {
+      throw new Error("Repository unavailable");
+    });
+
+    const res = await request(buildApp()).get(`/api/credit/lines/${VALID_ID}`);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: "Repository unavailable" });
+  });
+
+  it("returns 500 with a safe default message when repository throws a non-Error", async () => {
+    vi.spyOn(creditLineRepository, "getById").mockImplementation(() => {
+      throw "boom";
+    });
+
+    const res = await request(buildApp()).get(`/api/credit/lines/${VALID_ID}`);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: "Internal server error" });
   });
 });
 
@@ -102,7 +125,7 @@ describe("POST /api/credit/lines/:id/suspend — authorization", () => {
     denyAdmin();
     createCreditLine(VALID_ID);
     await request(buildApp()).post(`/api/credit/lines/${VALID_ID}/suspend`);
-    const { _store } = await import("../../services/creditService.js");
+    const { _store } = await import("../services/creditService.js");
     expect(_store.get(VALID_ID)?.status).toBe("active");
   });
 });
@@ -174,7 +197,7 @@ describe("POST /api/credit/lines/:id/close — authorization", () => {
     denyAdmin();
     createCreditLine(VALID_ID);
     await request(buildApp()).post(`/api/credit/lines/${VALID_ID}/close`);
-    const { _store } = await import("../../services/creditService.js");
+    const { _store } = await import("../services/creditService.js");
     expect(_store.get(VALID_ID)?.status).toBe("active");
   });
 });
