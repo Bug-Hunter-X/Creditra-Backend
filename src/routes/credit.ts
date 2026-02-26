@@ -1,76 +1,64 @@
-import { Router, Request, Response, NextFunction, ErrorRequestHandler } from "express";
+import { Router, Request, Response } from "express";
+import { ok, fail } from "../utils/response.js";
 import { adminAuth } from "../middleware/adminAuth.js";
 import {
+  listCreditLines,
+  getCreditLine,
   suspendCreditLine,
   closeCreditLine,
   CreditLineNotFoundError,
   InvalidTransitionError,
 } from "../services/creditService.js";
-import { creditLineRepository } from "../repositories/creditLineRepository.js";
 
-const router = Router();
+export const creditRouter = Router();
 
 function handleServiceError(err: unknown, res: Response): void {
   if (err instanceof CreditLineNotFoundError) {
-    res.status(404).json({ error: err.message });
+    fail(res, err.message, 404);
     return;
   }
   if (err instanceof InvalidTransitionError) {
-    res.status(409).json({ error: err.message });
+    fail(res, err.message, 409);
     return;
   }
-  const message = err instanceof Error ? err.message : "Internal server error";
-  res.status(500).json({ error: message });
+  fail(res, err, 500);
 }
 
-const creditRouteErrorHandler: ErrorRequestHandler = (err, _req, res, _next): void => {
-  handleServiceError(err, res);
-};
-
-router.get("/lines", (_req: Request, res: Response): void => {
-  res.json({ data: creditLineRepository.getAll() });
+creditRouter.get("/lines", (_req: Request, res: Response): void => {
+  ok(res, listCreditLines());
 });
 
-
-router.get("/lines/:id", (req: Request, res: Response, next: NextFunction): void => {
-  try {
-    const id = req.params["id"] as string;
-    const line = creditLineRepository.getById(id);
-    if (!line) {
-      throw new CreditLineNotFoundError(id);
-    }
-    res.status(200).json({ data: line });
-  } catch (err) {
-    next(err);
+creditRouter.get("/lines/:id", (req: Request, res: Response): void => {
+  const line = getCreditLine(req.params["id"] as string);
+  if (!line) {
+    fail(res, `Credit line "${req.params["id"]}" not found.`, 404);
+    return;
   }
+  ok(res, line);
 });
 
-router.post(
+creditRouter.post(
   "/lines/:id/suspend",
   adminAuth,
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const line = suspendCreditLine(req.params["id"] as string);
-      res.json({ data: line, message: "Credit line suspended." });
+      ok(res, { line, message: "Credit line suspended." });
     } catch (err) {
-      next(err);
+      handleServiceError(err, res);
     }
   },
 );
 
-router.post(
+creditRouter.post(
   "/lines/:id/close",
   adminAuth,
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const line = closeCreditLine(req.params["id"] as string);
-      res.json({ data: line, message: "Credit line closed." });
+      ok(res, { line, message: "Credit line closed." });
     } catch (err) {
-      next(err);
+      handleServiceError(err, res);
     }
   },
 );
-
-router.use(creditRouteErrorHandler);
-
-export default router;
