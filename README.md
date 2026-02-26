@@ -53,8 +53,17 @@ API base: [http://localhost:3000](http://localhost:3000).
 |-------------|----------|----------------------------------------------------------|
 | `PORT`      | No       | Server port (default: `3000`)                            |
 | `API_KEYS`  | **Yes**  | Comma-separated list of valid admin API keys (see below) |
+| `DATABASE_URL` | No    | PostgreSQL connection string (required for migrations)   |
 
-Optional later: `DATABASE_URL`, `REDIS_URL`, `HORIZON_URL`, etc.
+Optional later: `REDIS_URL`, `HORIZON_URL`, etc.
+
+## Data model and migrations
+
+The PostgreSQL schema is designed and documented in **[docs/data-model.md](docs/data-model.md)**. It covers borrowers, credit lines, risk evaluations, transactions, and events, with indexes and security notes.
+
+- **Migrations** live in `migrations/` as sequential SQL files. See [migrations/README.md](migrations/README.md) for strategy and naming.
+- **Apply migrations:** `DATABASE_URL=... npm run db:migrate`
+- **Validate schema:** `DATABASE_URL=... npm run db:validate`
 
 ## Authentication
 
@@ -152,7 +161,21 @@ src/
     credit.test.ts     # credit route integration tests
     risk.test.ts       # risk route integration tests
   index.ts             # app entry, middleware wiring, route mounting
+  db/                  # migration and schema validation helpers
+docs/
+  data-model.md        # PostgreSQL data model documentation
+  security-checklist-backend.md
+migrations/            # SQL migration files
 ```
+
+## Security
+
+Security is a priority for Creditra. Before deploying or contributing:
+
+- Review the [Backend Security Checklist](docs/security-checklist-backend.md)
+- Ensure all security requirements are met
+- Run `npm audit` to check for vulnerabilities
+- Maintain minimum 95% test coverage
 
 ## Merging to remote
 
