@@ -107,30 +107,28 @@ creditRouter.get('/wallet/:walletAddress/lines', async (req, res) => {
   }
 });
 
-router.post(
+creditRouter.post(
   "/lines/:id/suspend",
   adminAuth,
   async (req: Request, res: Response): Promise<void> => {
     try {
       const line = suspendCreditLine(req.params["id"] as string);
-      res.json({ data: line, message: "Credit line suspended." });
+      ok(res, { line, message: "Credit line suspended." });
     } catch (err) {
       handleServiceError(err, res);
     }
   },
 );
 
-router.post(
+creditRouter.post(
   "/lines/:id/close",
   adminAuth,
   async (req: Request, res: Response): Promise<void> => {
     try {
       const line = closeCreditLine(req.params["id"] as string);
-      res.json({ data: line, message: "Credit line closed." });
+      ok(res, { line, message: "Credit line closed." });
     } catch (err) {
       handleServiceError(err, res);
     }
   },
 );
-
-export default router;
