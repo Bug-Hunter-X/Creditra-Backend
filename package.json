@@ -12,6 +12,21 @@
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage"
   },
+  "vitest": {
+    "coverage": {
+      "provider": "v8",
+      "reporter": [
+        "text",
+        "lcov"
+      ],
+      "include": [
+        "src/**"
+      ],
+      "exclude": [
+        "src/__tests__/**"
+      ]
+    }
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2"
@@ -26,6 +41,14 @@
     "@vitest/coverage-v8": "^1.2.0",
     "eslint": "^8.56.0",
     "supertest": "^6.3.4",
+    "@types/pg": "^8.10.9",
+    "@types/supertest": "^7.2.0",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@typescript-eslint/eslint-plugin": "^7.8.0",
+    "@typescript-eslint/parser": "^7.8.0",
+    "eslint": "^8.57.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "supertest": "^7.2.2",
     "tsx": "^4.7.0",
     "typescript": "~5.2.2",
     "vitest": "^1.2.0"

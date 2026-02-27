@@ -1,5 +1,17 @@
 import { Router } from 'express';
 import { Container } from '../container/Container.js';
+import { Router, Request, Response } from 'express';
+import { createApiKeyMiddleware } from '../middleware/auth.js';
+import { loadApiKeys } from '../config/apiKeys.js';
+import { ok, fail } from "../utils/response.js";
+import {
+  listCreditLines,
+  getCreditLine,
+  suspendCreditLine,
+  closeCreditLine,
+  CreditLineNotFoundError,
+  InvalidTransitionError,
+} from "../services/creditService.js";
 
 export const creditRouter = Router();
 const container = Container.getInstance();
@@ -23,6 +35,14 @@ creditRouter.get('/lines', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch credit lines' });
+// Use a resolver function so API_KEYS is read lazily per-request,
+// allowing the env var to be set after module import (e.g. in tests).
+const requireApiKey = createApiKeyMiddleware(() => loadApiKeys());
+
+function handleServiceError(err: unknown, res: Response): void {
+  if (err instanceof CreditLineNotFoundError) {
+    fail(res, err.message, 404);
+    return;
   }
 });
 
@@ -96,6 +116,12 @@ creditRouter.delete('/lines/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete credit line' });
   }
+// ---------------------------------------------------------------------------
+// Public endpoints – no API key required
+// ---------------------------------------------------------------------------
+
+creditRouter.get("/lines", (_req: Request, res: Response): void => {
+  ok(res, listCreditLines());
 });
 
 creditRouter.get('/wallet/:walletAddress/lines', async (req, res) => {
@@ -107,9 +133,17 @@ creditRouter.get('/wallet/:walletAddress/lines', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Admin endpoints – require a valid API key via `X-API-Key` header
+// ---------------------------------------------------------------------------
+
+/**
+ * POST /api/credit/lines/:id/suspend
+ * Suspend an active credit line.  Requires admin API key.
+ */
 creditRouter.post(
   "/lines/:id/suspend",
-  adminAuth,
+  requireApiKey,
   async (req: Request, res: Response): Promise<void> => {
     try {
       const line = suspendCreditLine(req.params["id"] as string);
@@ -120,9 +154,13 @@ creditRouter.post(
   },
 );
 
+/**
+ * POST /api/credit/lines/:id/close
+ * Permanently close a credit line.  Requires admin API key.
+ */
 creditRouter.post(
   "/lines/:id/close",
-  adminAuth,
+  requireApiKey,
   async (req: Request, res: Response): Promise<void> => {
     try {
       const line = closeCreditLine(req.params["id"] as string);
