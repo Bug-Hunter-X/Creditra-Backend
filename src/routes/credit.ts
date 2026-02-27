@@ -1,4 +1,12 @@
 import { Router } from 'express';
+import { validateBody } from '../middleware/validate.js';
+import {
+  createCreditLineSchema,
+  drawSchema,
+  repaySchema,
+} from '../schemas/index.js';
+import type { CreateCreditLineBody, DrawBody, RepayBody } from '../schemas/index.js';
+import { Router, Request, Response } from "express";
 import { Container } from '../container/Container.js';
 import { Router, Request, Response } from 'express';
 import { createApiKeyMiddleware } from '../middleware/auth.js';
@@ -133,6 +141,38 @@ creditRouter.get('/wallet/:walletAddress/lines', async (req, res) => {
   }
 });
 
+/** Create a new credit line */
+creditRouter.post('/lines', validateBody(createCreditLineSchema), (req, res) => {
+  const { walletAddress, requestedLimit } = req.body as CreateCreditLineBody;
+  res.status(201).json({
+    id: 'placeholder-id',
+    walletAddress,
+    requestedLimit,
+    status: 'pending',
+    message: 'Credit line creation not yet implemented; placeholder response.',
+  });
+});
+
+/** Draw from a credit line */
+creditRouter.post('/lines/:id/draw', validateBody(drawSchema), (req, res) => {
+  const { amount } = req.body as DrawBody;
+  res.json({
+    id: req.params.id,
+    amount,
+    message: 'Draw not yet implemented; placeholder response.',
+  });
+});
+
+/** Repay a credit line */
+creditRouter.post('/lines/:id/repay', validateBody(repaySchema), (req, res) => {
+  const { amount } = req.body as RepayBody;
+  res.json({
+    id: req.params.id,
+    amount,
+    message: 'Repay not yet implemented; placeholder response.',
+  });
+});
+router.post(
 // ---------------------------------------------------------------------------
 // Admin endpoints – require a valid API key via `X-API-Key` header
 // ---------------------------------------------------------------------------
@@ -169,4 +209,7 @@ creditRouter.post(
       handleServiceError(err, res);
     }
   },
+);
+
+export default router;
 );

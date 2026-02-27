@@ -8,6 +8,8 @@ import swaggerUi from 'swagger-ui-express';
 
 import { creditRouter } from './routes/credit.js';
 import { riskRouter } from './routes/risk.js';
+import { errorHandler } from './middleware/errorHandler.js';
+
 import { ok } from './utils/response.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -33,6 +35,16 @@ app.get('/health', (_req, res) => {
 app.use('/api/credit', creditRouter);
 app.use('/api/risk', riskRouter);
 
+// Global error handler — must be registered after routes
+app.use(errorHandler);
+
+app.listen(port, () => {
+  console.log(`Creditra API listening on http://localhost:${port}`);
+  console.log(`Swagger UI available at  http://localhost:${port}/docs`);
+});
+
+export { app };  // exported for tests
+// Only start the server if not imported by tests setup
 // Only start server if this file is run directly (not imported for testing)
 if (import.meta.url === `file://${process.argv[1]}`) {
 // Only start listening when this file is the entry-point (not when imported by tests).

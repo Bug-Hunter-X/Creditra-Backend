@@ -1,4 +1,8 @@
 import { Router } from 'express';
+import { validateBody } from '../middleware/validate.js';
+import { riskEvaluateSchema } from '../schemas/index.js';
+import type { RiskEvaluateBody } from '../schemas/index.js';
+import { Router, Request, Response } from "express";
 import { Container } from '../container/Container.js';
 import { Router, Request, Response } from 'express';
 import { createApiKeyMiddleware } from '../middleware/auth.js';
@@ -9,6 +13,17 @@ import { ok, fail } from "../utils/response.js";
 export const riskRouter = Router();
 const container = Container.getInstance();
 
+riskRouter.post('/evaluate', validateBody(riskEvaluateSchema), (req, res) => {
+  const { walletAddress } = req.body as RiskEvaluateBody;
+  res.json({
+    walletAddress,
+    riskScore: 0,
+    creditLimit: '0',
+    interestRateBps: 0,
+    message: 'Risk engine not yet connected; placeholder response.',
+  });
+});
+router.post(
 riskRouter.post('/evaluate', async (req, res) => {
   try {
     const { walletAddress, forceRefresh } = req.body ?? {};
@@ -92,6 +107,7 @@ riskRouter.get('/wallet/:walletAddress/history', async (req, res) => {
   },
 );
 
+export default router;
 // ---------------------------------------------------------------------------
 // Internal / admin endpoints – require a valid API key
 // ---------------------------------------------------------------------------
